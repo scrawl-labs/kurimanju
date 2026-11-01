@@ -268,22 +268,22 @@ const PROPS = {
     part(g,new THREE.CylinderGeometry(.11,.11,.08,20),toon(0xd9d9d6),[0,.12,0]);
     part(g,new THREE.CylinderGeometry(.11,.11,.12,20),toon(0xd67554),[0,.02,0]);
     part(g,new THREE.CylinderGeometry(.11,.11,.1,20),toon(0xf5c9c4),[0,-.09,0]);
-    g.position.set(.27,.36,.6); h.add(g); return [.44,.36,.6]; },
+    g.position.set(.34,.38,.5); h.add(g); return [.49,.4,.35]; },
   glass(h){ const g=new THREE.Group();
     const c=new THREE.Mesh(new THREE.CylinderGeometry(.17,.14,.34,24,1,true),new THREE.MeshPhongMaterial({color:0xf2fbff,transparent:true,opacity:.35,side:THREE.DoubleSide,shininess:90}));
     g.add(c); const drink=new THREE.Mesh(new THREE.CylinderGeometry(.155,.14,.24,24),new THREE.MeshToonMaterial({color:0xffee9a,gradientMap:bunRamp})); drink.position.y=-.04; g.add(drink);
     const lemon=part(g,new THREE.CylinderGeometry(.09,.09,.025,20),toon(0xf6d84a),[-.15,.15,.05]); lemon.rotation.set(Math.PI/2,0,.4);
-    g.position.set(.22,.38,.6); h.add(g); return [.46,.34,.6]; },
+    g.position.set(.27,.4,.52); h.add(g); return [.49,.38,.38]; },
   manju(h){ const g=new THREE.Group();
     part(g,new THREE.SphereGeometry(.1,16,10,0,Math.PI*2,0,Math.PI/2),toon(0x7a4a32),[0,0,0],[1,.8,1]);
     part(g,new THREE.CylinderGeometry(.1,.095,.06,16),toon(0xf2d3a2),[0,-.03,0]);
-    g.position.set(.27,.42,.6); h.add(g); return [.41,.36,.6]; },
+    g.position.set(.42,.46,.42); h.add(g); return [.44,.36,.36]; },
   sausage(h){ const g=new THREE.Group();   // corn-dog style: a stick with the sausage on top, held upright
     part(g,new THREE.CylinderGeometry(.014,.014,.5,8),toon(0xd9b784),[0,0,0],[1,1,1],.01);
     part(g,new THREE.CylinderGeometry(.06,.06,.24,14),toon(0xa8432e),[0,.1,0]);
     part(g,new THREE.SphereGeometry(.06,12,8),toon(0xa8432e),[0,.22,0]);
     part(g,new THREE.SphereGeometry(.06,12,8),toon(0xa8432e),[0,-.02,0]);
-    g.position.set(.3,.3,.6); h.add(g); return [.37,.2,.6]; },
+    g.position.set(.44,.2,.38); h.add(g); return [.47,.3,.34]; },
 };
 // the five versions, from the reference pictures
 const VARIANTS = [
@@ -311,10 +311,11 @@ function makeBun(scale=1, variant=0){
   });
   if (V.prop){
     const hand = PROPS[V.prop](body); const pg = body.children[body.children.length-1]; pg.scale.setScalar(1.35);
-    const sh = new THREE.Vector3(.54,.46,.1), hd = new THREE.Vector3(...hand), mid = sh.clone().add(hd).multiplyScalar(.5), v = hd.clone().sub(sh);
-    const arm = nub(body, mid.x, mid.y, mid.z, .1, .1, v.length()/2 + .05);
-    arm.rotation.set(-Math.asin(v.y/v.length()), Math.atan2(v.x, v.z), 0, 'YXZ');
-    nub(body, hd.x, hd.y, hd.z, .1, .1, .1);
+    // the arm keeps its normal size and simply points at the prop
+    const sh = new THREE.Vector3(.54,.46,.1), dir = new THREE.Vector3(...hand).sub(sh).normalize();
+    const arm = nub(body, sh.x+dir.x*.13, sh.y+dir.y*.13, sh.z+dir.z*.13, .1, .15, .1);
+    arm.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir);
+    nub(body, sh.x+dir.x*.28, sh.y+dir.y*.28, sh.z+dir.z*.28, .085, .085, .085);
   }
   g.scale.setScalar(scale*.85); scene.add(g);
   g.traverse(m=>{ if (m.isMesh && m.material !== KURI.line){ m.castShadow = true; } });
