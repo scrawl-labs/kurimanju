@@ -268,21 +268,22 @@ const PROPS = {
     part(g,new THREE.CylinderGeometry(.11,.11,.08,20),toon(0xd9d9d6),[0,.12,0]);
     part(g,new THREE.CylinderGeometry(.11,.11,.12,20),toon(0xd67554),[0,.02,0]);
     part(g,new THREE.CylinderGeometry(.11,.11,.1,20),toon(0xf5c9c4),[0,-.09,0]);
-    g.position.set(.74,.3,.32); h.add(g); },
+    g.position.set(.27,.36,.6); h.add(g); return [.44,.36,.6]; },
   glass(h){ const g=new THREE.Group();
-    const c=new THREE.Mesh(new THREE.CylinderGeometry(.17,.14,.34,24,1,true),new THREE.MeshPhongMaterial({color:0xcfeef7,transparent:true,opacity:.55,side:THREE.DoubleSide,shininess:80}));
-    g.add(c); const drink=new THREE.Mesh(new THREE.CylinderGeometry(.155,.14,.24,24),new THREE.MeshPhongMaterial({color:0xfff6c8,transparent:true,opacity:.55})); drink.position.y=-.04; g.add(drink);
+    const c=new THREE.Mesh(new THREE.CylinderGeometry(.17,.14,.34,24,1,true),new THREE.MeshPhongMaterial({color:0xf2fbff,transparent:true,opacity:.35,side:THREE.DoubleSide,shininess:90}));
+    g.add(c); const drink=new THREE.Mesh(new THREE.CylinderGeometry(.155,.14,.24,24),new THREE.MeshToonMaterial({color:0xffee9a,gradientMap:bunRamp})); drink.position.y=-.04; g.add(drink);
     const lemon=part(g,new THREE.CylinderGeometry(.09,.09,.025,20),toon(0xf6d84a),[-.15,.15,.05]); lemon.rotation.set(Math.PI/2,0,.4);
-    g.position.set(.74,.32,.34); h.add(g); },
+    g.position.set(.22,.38,.6); h.add(g); return [.46,.34,.6]; },
   manju(h){ const g=new THREE.Group();
     part(g,new THREE.SphereGeometry(.1,16,10,0,Math.PI*2,0,Math.PI/2),toon(0x7a4a32),[0,0,0],[1,.8,1]);
     part(g,new THREE.CylinderGeometry(.1,.095,.06,16),toon(0xf2d3a2),[0,-.03,0]);
-    g.position.set(.44,.34,.5); h.add(g); },
-  sausage(h){ const g=new THREE.Group();
-    const s=part(g,new THREE.CylinderGeometry(.06,.06,.3,14),toon(0xa8432e),[0,0,0]); s.rotation.z=Math.PI/2+.15;
-    [-.15,.15].forEach(x=>part(g,new THREE.SphereGeometry(.06,12,8),toon(0xa8432e),[x,x*.15,0]));
-    const fork=part(g,new THREE.CylinderGeometry(.012,.012,.5,6),toon(0xbfc3c7),[.22,-.2,0],[1,1,1],.01); fork.rotation.z=.9;
-    g.position.set(.7,.3,.34); h.add(g); },
+    g.position.set(.27,.42,.6); h.add(g); return [.41,.36,.6]; },
+  sausage(h){ const g=new THREE.Group();   // corn-dog style: a stick with the sausage on top, held upright
+    part(g,new THREE.CylinderGeometry(.014,.014,.5,8),toon(0xd9b784),[0,0,0],[1,1,1],.01);
+    part(g,new THREE.CylinderGeometry(.06,.06,.24,14),toon(0xa8432e),[0,.1,0]);
+    part(g,new THREE.SphereGeometry(.06,12,8),toon(0xa8432e),[0,.22,0]);
+    part(g,new THREE.SphereGeometry(.06,12,8),toon(0xa8432e),[0,-.02,0]);
+    g.position.set(.3,.3,.6); h.add(g); return [.37,.2,.6]; },
 };
 // the five versions, from the reference pictures
 const VARIANTS = [
@@ -305,11 +306,16 @@ function makeBun(scale=1, variant=0){
   const feet = [];
   [-1,1].forEach(sd=>{
     const e = KURI.earPos(sd); nub(head, e.x, e.y, -.02, .1, .085, .08);
-    const holding = V.prop && sd === 1;
-    nub(body, .56*sd, holding ? .44 : .48, holding ? .2 : .08, .1, .15, .1).rotation.z = (holding ? 1.1 : .4)*sd;
+    if (!(V.prop && sd === 1)) nub(body, .55*sd, .48, .08, .1, .15, .1).rotation.z = .4*sd;
     feet.push(nub(body, .24*sd, .04, .22, .16, .085, .18));
   });
-  if (V.prop){ PROPS[V.prop](body); const pg = body.children[body.children.length-1]; pg.scale.setScalar(1.35); }
+  if (V.prop){
+    const hand = PROPS[V.prop](body); const pg = body.children[body.children.length-1]; pg.scale.setScalar(1.35);
+    const sh = new THREE.Vector3(.54,.46,.1), hd = new THREE.Vector3(...hand), mid = sh.clone().add(hd).multiplyScalar(.5), v = hd.clone().sub(sh);
+    const arm = nub(body, mid.x, mid.y, mid.z, .1, .1, v.length()/2 + .05);
+    arm.rotation.set(-Math.asin(v.y/v.length()), Math.atan2(v.x, v.z), 0, 'YXZ');
+    nub(body, hd.x, hd.y, hd.z, .1, .1, .1);
+  }
   g.scale.setScalar(scale*.85); scene.add(g);
   g.traverse(m=>{ if (m.isMesh && m.material !== KURI.line){ m.castShadow = true; } });
   const bun = {g, body, head, feet, wp:0, dirYaw:0, variant, speed:.9+Math.random()*.4, target:new THREE.Vector3(), wait:Math.random()*2, ph:Math.random()*9, hop:0};
