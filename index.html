@@ -251,21 +251,21 @@ const PROPS = {
     part(g,new THREE.CylinderGeometry(.11,.11,.08,20),toon(0xd9d9d6),[0,.12,0]);
     part(g,new THREE.CylinderGeometry(.11,.11,.12,20),toon(0xd67554),[0,.02,0]);
     part(g,new THREE.CylinderGeometry(.11,.11,.1,20),toon(0xf5c9c4),[0,-.09,0]);
-    g.position.set(.65,.52,.3); h.add(g); },
+    g.position.set(.78,.6,.34); h.add(g); },
   glass(h){ const g=new THREE.Group();
     const c=new THREE.Mesh(new THREE.CylinderGeometry(.17,.14,.34,24,1,true),new THREE.MeshPhongMaterial({color:0xcfeef7,transparent:true,opacity:.55,side:THREE.DoubleSide,shininess:80}));
     g.add(c); const drink=new THREE.Mesh(new THREE.CylinderGeometry(.155,.14,.24,24),new THREE.MeshPhongMaterial({color:0xfff6c8,transparent:true,opacity:.55})); drink.position.y=-.04; g.add(drink);
     const lemon=part(g,new THREE.CylinderGeometry(.09,.09,.025,20),toon(0xf6d84a),[-.15,.15,.05]); lemon.rotation.set(Math.PI/2,0,.4);
-    g.position.set(.62,.5,.4); h.add(g); },
+    g.position.set(.74,.56,.44); h.add(g); },
   manju(h){ const g=new THREE.Group();
     part(g,new THREE.SphereGeometry(.1,16,10,0,Math.PI*2,0,Math.PI/2),toon(0x7a4a32),[0,0,0],[1,.8,1]);
     part(g,new THREE.CylinderGeometry(.1,.095,.06,16),toon(0xf2d3a2),[0,-.03,0]);
-    g.position.set(.34,.5,.48); h.add(g); },
+    g.position.set(.4,.6,.55); h.add(g); },
   sausage(h){ const g=new THREE.Group();
     const s=part(g,new THREE.CylinderGeometry(.06,.06,.3,14),toon(0xa8432e),[0,0,0]); s.rotation.z=Math.PI/2+.15;
     [-.15,.15].forEach(x=>part(g,new THREE.SphereGeometry(.06,12,8),toon(0xa8432e),[x,x*.15,0]));
     const fork=part(g,new THREE.CylinderGeometry(.012,.012,.5,6),toon(0xbfc3c7),[.27,-.17,0],[1,1,1],.01); fork.rotation.z=.9;
-    g.position.set(.1,1.12,.78); h.add(g); },
+    g.position.set(.09,1.12,.7); h.add(g); },
 };
 // the five versions, from the reference pictures
 const VARIANTS = [
@@ -279,17 +279,17 @@ function makeBun(scale=1, variant=0){
   const V = VARIANTS[variant % VARIANTS.length];
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   // small round body underneath
-  const torso = new THREE.Mesh(KURI.torsoGeo, KURI.cream); torso.scale.set(1.0,.9,.9); torso.position.y = .4; body.add(torso);
-  const torsoLine = new THREE.Mesh(KURI.torsoGeo, KURI.line); torsoLine.scale.set(1.0*1.05,.9*1.05,.9*1.05); torsoLine.position.y = .4; body.add(torsoLine);
+  const torso = new THREE.Mesh(KURI.torsoGeo, KURI.cream); torso.scale.set(1.22,1.1,1.0); torso.position.y = .5; body.add(torso);
+  const torsoLine = new THREE.Mesh(KURI.torsoGeo, KURI.line); torsoLine.scale.set(1.22*1.045,1.1*1.045,1.0*1.05); torsoLine.position.y = .5; body.add(torsoLine);
   // big head in front, its outline overlaps the body so the two read as separate
-  const head = new THREE.Object3D(); head.position.y = .5; body.add(head);
+  const head = new THREE.Object3D(); head.position.y = .62; head.scale.setScalar(.86); body.add(head);
   const b = new THREE.Mesh(KURI.bodyGeo, KURI.faceMat(V.face)); b.scale.z = .9; head.add(b);
   const hull = new THREE.Mesh(KURI.hullGeo, KURI.line); hull.scale.z = .9; head.add(hull);
   [-1,1].forEach(sd=>{
     const e = KURI.earPos(sd); nub(head, e.x, e.y, -.02, .13, .11, .1);
     const holding = V.prop && sd === 1;
-    nub(body, .5*sd, holding ? .5 : .42, holding ? .16 : .08, .1, .15, .1).rotation.z = (holding ? 1.0 : .4)*sd;
-    nub(body, .24*sd, .04, .22, .16, .085, .18);
+    nub(body, .6*sd, holding ? .56 : .5, holding ? .2 : .1, .11, .16, .11).rotation.z = (holding ? 1.0 : .4)*sd;
+    nub(body, .3*sd, .04, .27, .17, .09, .19);
   });
   if (V.prop){ PROPS[V.prop](body); const pg = body.children[body.children.length-1]; pg.scale.setScalar(1.35); }
   g.scale.setScalar(scale*.85); scene.add(g);
