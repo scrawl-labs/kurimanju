@@ -420,7 +420,7 @@ function syncPeers(peers){
 // Everyone who has the page open shares one forest. This uses Supabase Realtime "presence":
 // no server code and no database table. Create a free Supabase project, then paste the two
 // values from Project Settings > API here (the anon key is meant to be public).
-const KURI_ONLINE = { url: '', anonKey: '' };
+const KURI_ONLINE = { url: 'https://cakgeeohbqbabbjigysb.supabase.co', anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNha2dlZW9oYnFiYWJiamlneXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NDI3ODIsImV4cCI6MjEwOTExODc4Mn0.9kAN2rKtXzg6oRuqVtRgrKB9mr8_fy7RHsZ3OBSaOa4' };
 async function supabaseRoom(){
   if (!KURI_ONLINE.url || !KURI_ONLINE.anonKey) return null;
   if (!window.supabase){
