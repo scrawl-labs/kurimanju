@@ -152,51 +152,51 @@ const flies = Array.from({length:36},()=>{const m=new THREE.Mesh(flyGeo,new THRE
 
 // ---- Kurimanju: one soft bean-shaped body (head wider than body), chestnut cap with a curved edge ----
 const LINE = 0x3a2218;
-const bunRamp = new THREE.DataTexture(new Uint8Array([212,244]), 2, 1, THREE.LuminanceFormat);
+const bunRamp = new THREE.DataTexture(new Uint8Array([150,190]), 2, 1, THREE.LuminanceFormat);
 bunRamp.minFilter = bunRamp.magFilter = THREE.NearestFilter; bunRamp.needsUpdate = true;
 const toon = c => new THREE.MeshToonMaterial({color:c, gradientMap:bunRamp});
 const KURI = (() => {
-  const ctrl = [[0,0],[.36,.01],[.6,.1],[.76,.28],[.82,.52],[.82,.78],[.76,1.02],[.62,1.25],[.38,1.42],[0,1.5]]
+  const ctrl = [[0,0],[.36,.01],[.58,.08],[.74,.22],[.81,.42],[.81,.62],[.76,.85],[.63,1.04],[.4,1.18],[0,1.24]]
     .map(([x,y])=>new THREE.Vector2(x,y));
   const prof = new THREE.SplineCurve(ctrl).getSpacedPoints(120);
   prof[0].x = .001; prof[prof.length-1].x = .001;
   const S=[0]; for (let i=1;i<prof.length;i++) S.push(S[i-1]+prof[i].distanceTo(prof[i-1]));
-  const L = S[S.length-1], RH = .82;
+  const L = S[S.length-1], RH = .81;
   const at = y => { for (let i=1;i<prof.length;i++) if (prof[i].y>=y){ const f=(y-prof[i-1].y)/(prof[i].y-prof[i-1].y||1);
       return {r:prof[i-1].x+(prof[i].x-prof[i-1].x)*f, s:S[i-1]+(S[i]-S[i-1])*f}; } return {r:0,s:L}; };
   const W = 2048, H = Math.round(W*L/(2*Math.PI*RH)), k = W/(2*Math.PI*RH);
-  const edgeY = phi => 1.1 + .28*(1-Math.cos(2*phi))/2;
+  const edgeY = phi => .78 + .29*(1-Math.cos(2*phi))/2;
 
   // one texture per expression; u wraps around (front = centre), v follows arc length
   function face(kind){
     const cv = document.createElement('canvas'); cv.width=W; cv.height=H; const g = cv.getContext('2d');
     const P = (x,y) => { const q = at(y); return [W/2 + Math.asin(Math.max(-1,Math.min(1,x/q.r)))/(2*Math.PI)*W, (1-q.s/L)*H]; };
-    g.fillStyle = '#f4c4a0'; g.fillRect(0,0,W,H);
+    g.fillStyle = '#fde4bd'; g.fillRect(0,0,W,H);
     g.beginPath(); g.moveTo(0,0);
     for (let px=0; px<=W; px+=4){ const phi=(px/W-.5)*2*Math.PI; g.lineTo(px, (1-at(edgeY(phi)).s/L)*H); }
-    g.lineTo(W,0); g.closePath(); g.fillStyle='#6f4434'; g.fill();
+    g.lineTo(W,0); g.closePath(); g.fillStyle='#9a6650'; g.fill();
     g.strokeStyle='#3a2218'; g.lineWidth=.022*k; g.lineJoin='round'; g.stroke();
     const ink = '#2a1610';
     [-1,1].forEach(sd=>{
-      const [ex,ey] = P(.26*sd, .77);
+      const [ex,ey] = P(.27*sd, .58);
       g.fillStyle=ink; g.beginPath(); g.ellipse(ex,ey,.06*k,.066*k,0,0,7); g.fill();
       g.fillStyle='#fff'; g.beginPath(); g.ellipse(ex,ey+.014*k,.032*k,.024*k,0,0,7); g.fill();
       g.fillStyle=ink; g.beginPath(); g.ellipse(ex,ey+.007*k,.036*k,.03*k,0,0,7); g.fill();
       g.fillStyle='#fff'; g.beginPath(); g.arc(ex-.02*k,ey-.023*k,.018*k,0,7); g.fill();
-      const [bx,by] = P(.5*sd, .66);
+      const [bx,by] = P(.5*sd, .42);
       g.fillStyle='#f7b3c2'; g.beginPath(); g.ellipse(bx,by,.135*k,.08*k,0,0,7); g.fill();
       g.strokeStyle='#5a3328'; g.lineWidth=.013*k; g.lineCap='round';
       for (let j=-1;j<=1;j++){ const x=bx+j*.058*k; g.beginPath(); g.moveTo(x+.018*k,by-.04*k); g.lineTo(x-.018*k,by+.04*k); g.stroke(); }
     });
     g.strokeStyle=ink; g.fillStyle=ink; g.lineCap='round'; g.lineJoin='round'; g.lineWidth=.016*k;
-    const [wx,wy] = P(0, .86);
+    const [wx,wy] = P(0, .64);
     const line = (x1,y1,x2,y2)=>{ g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.stroke(); };
     if (kind === 'open'){
       // scrunched nose lines fanning out
       [-2,-1,0,1,2].forEach(j=>line(wx+j*.032*k, wy-.04*k+Math.abs(j)*.01*k, wx+j*.042*k, wy+.02*k));
       line(wx-.07*k, wy+.04*k, wx+.07*k, wy+.04*k);
       // wide open mouth with teeth and tongue
-      const [mx,my] = P(0, .56), w=.065*k, h=.09*k;
+      const [mx,my] = P(0, .47), w=.065*k, h=.09*k;
       g.beginPath(); g.moveTo(mx-w, my-h*.45);
       g.quadraticCurveTo(mx-w*.5, my-h*.2, mx, my-h*.5); g.quadraticCurveTo(mx+w*.5, my-h*.2, mx+w, my-h*.45);
       g.quadraticCurveTo(mx+w*.8, my+h*.9, mx, my+h*.8); g.quadraticCurveTo(mx-w*.8, my+h*.9, mx-w, my-h*.45); g.closePath();
@@ -206,20 +206,20 @@ const KURI = (() => {
       g.fillStyle='#fff';
       for (let i=-3;i<=3;i++){ const tx=mx+i*w*.24; g.beginPath(); g.moveTo(tx-w*.1,my-h*.5); g.lineTo(tx+w*.1,my-h*.5); g.lineTo(tx,my-h*.12); g.fill(); }
       g.restore();
-      const [cx2,cy2] = P(0, .42); line(cx2-.03*k, cy2, cx2+.03*k, cy2);
+      const [cx2,cy2] = P(0, .33); line(cx2-.03*k, cy2, cx2+.03*k, cy2);
     } else {
       [-1,0,1].forEach(j=>line(wx+j*.03*k, wy-.022*k, wx+j*.03*k+.004*k, wy+.012*k));
-      const [mx,my] = P(0, .58), m=.034*k;
+      const [mx,my] = P(0, .49), m=.034*k;
       g.beginPath(); g.moveTo(mx-1.9*m, my-.5*m);
       g.quadraticCurveTo(mx-1.6*m, my+.9*m, mx-.8*m, my+.6*m); g.quadraticCurveTo(mx-.2*m, my+.35*m, mx, my-.15*m);
       g.quadraticCurveTo(mx+.2*m, my+.35*m, mx+.8*m, my+.6*m); g.quadraticCurveTo(mx+1.6*m, my+.9*m, mx+1.9*m, my-.5*m); g.stroke();
-      const [cx2,cy2] = P(0, .5);
+      const [cx2,cy2] = P(0, .41);
       g.beginPath(); g.moveTo(cx2-.03*k, cy2-.008*k); g.quadraticCurveTo(cx2, cy2+.022*k, cx2+.03*k, cy2-.008*k); g.stroke();
       if (kind === 'munch'){ // crumbs on the cheek
-        g.fillStyle='#b57a4c'; [[.12,.62,.016],[.15,.57,.011],[-.13,.6,.012]].forEach(([x,y,r])=>{const [px,py]=P(x,y); g.beginPath(); g.arc(px,py,r*k,0,7); g.fill(); g.stroke();});
+        g.fillStyle='#b57a4c'; [[.12,.45,.016],[.15,.41,.011],[-.13,.43,.012]].forEach(([x,y,r])=>{const [px,py]=P(x,y); g.beginPath(); g.arc(px,py,r*k,0,7); g.fill(); g.stroke();});
       }
       if (kind === 'sip'){ // little droplet under the mouth
-        const [dx,dy] = P(-.04, .54); g.beginPath(); g.moveTo(dx,dy-.02*k); g.quadraticCurveTo(dx+.022*k,dy+.02*k,dx,dy+.03*k); g.quadraticCurveTo(dx-.022*k,dy+.02*k,dx,dy-.02*k); g.stroke();
+        const [dx,dy] = P(-.04, .44); g.beginPath(); g.moveTo(dx,dy-.02*k); g.quadraticCurveTo(dx+.022*k,dy+.02*k,dx,dy+.03*k); g.quadraticCurveTo(dx-.022*k,dy+.02*k,dx,dy-.02*k); g.stroke();
       }
     }
     const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 8;
@@ -228,10 +228,10 @@ const KURI = (() => {
   const bodyGeo = new THREE.LatheGeometry(prof, 72, Math.PI, Math.PI*2);
   const hullGeo = bodyGeo.clone(); { const p=hullGeo.attributes.position, n=hullGeo.attributes.normal;
     for (let i=0;i<p.count;i++) p.setXYZ(i, p.getX(i)+n.getX(i)*.028, p.getY(i)+n.getY(i)*.028, p.getZ(i)+n.getZ(i)*.028); }
-  const earPos = sd => { const y=1.2, q=at(y); return new THREE.Vector3(q.r*.98*sd, y, 0); };
+  const earPos = sd => { const y=1.0, q=at(y); return new THREE.Vector3(q.r*.98*sd, y, 0); };
   const torsoGeo = new THREE.SphereGeometry(.52, 40, 28);
   const faces = {}; const faceMat = kind => faces[kind] || (faces[kind] = face(kind));
-  return { bodyGeo, hullGeo, torsoGeo, earPos, faceMat, cream: toon(0xf4c4a0),
+  return { bodyGeo, hullGeo, torsoGeo, earPos, faceMat, cream: toon(0xfde4bd),
     line: new THREE.MeshBasicMaterial({color:LINE, side:THREE.BackSide}), nub: new THREE.SphereGeometry(1, 20, 14) };
 })();
 // outlined part: the mesh plus a slightly larger back-face shell in the line colour
@@ -251,21 +251,21 @@ const PROPS = {
     part(g,new THREE.CylinderGeometry(.11,.11,.08,20),toon(0xd9d9d6),[0,.12,0]);
     part(g,new THREE.CylinderGeometry(.11,.11,.12,20),toon(0xd67554),[0,.02,0]);
     part(g,new THREE.CylinderGeometry(.11,.11,.1,20),toon(0xf5c9c4),[0,-.09,0]);
-    g.position.set(.78,.6,.34); h.add(g); },
+    g.position.set(.7,.6,.3); h.add(g); },
   glass(h){ const g=new THREE.Group();
     const c=new THREE.Mesh(new THREE.CylinderGeometry(.17,.14,.34,24,1,true),new THREE.MeshPhongMaterial({color:0xcfeef7,transparent:true,opacity:.55,side:THREE.DoubleSide,shininess:80}));
     g.add(c); const drink=new THREE.Mesh(new THREE.CylinderGeometry(.155,.14,.24,24),new THREE.MeshPhongMaterial({color:0xfff6c8,transparent:true,opacity:.55})); drink.position.y=-.04; g.add(drink);
     const lemon=part(g,new THREE.CylinderGeometry(.09,.09,.025,20),toon(0xf6d84a),[-.15,.15,.05]); lemon.rotation.set(Math.PI/2,0,.4);
-    g.position.set(.74,.56,.44); h.add(g); },
+    g.position.set(.68,.56,.4); h.add(g); },
   manju(h){ const g=new THREE.Group();
     part(g,new THREE.SphereGeometry(.1,16,10,0,Math.PI*2,0,Math.PI/2),toon(0x7a4a32),[0,0,0],[1,.8,1]);
     part(g,new THREE.CylinderGeometry(.1,.095,.06,16),toon(0xf2d3a2),[0,-.03,0]);
-    g.position.set(.4,.6,.55); h.add(g); },
+    g.position.set(.38,.58,.5); h.add(g); },
   sausage(h){ const g=new THREE.Group();
     const s=part(g,new THREE.CylinderGeometry(.06,.06,.3,14),toon(0xa8432e),[0,0,0]); s.rotation.z=Math.PI/2+.15;
     [-.15,.15].forEach(x=>part(g,new THREE.SphereGeometry(.06,12,8),toon(0xa8432e),[x,x*.15,0]));
     const fork=part(g,new THREE.CylinderGeometry(.012,.012,.5,6),toon(0xbfc3c7),[.27,-.17,0],[1,1,1],.01); fork.rotation.z=.9;
-    g.position.set(.09,1.12,.7); h.add(g); },
+    g.position.set(.1,1.1,.8); h.add(g); },
 };
 // the five versions, from the reference pictures
 const VARIANTS = [
@@ -279,17 +279,17 @@ function makeBun(scale=1, variant=0){
   const V = VARIANTS[variant % VARIANTS.length];
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   // small round body underneath
-  const torso = new THREE.Mesh(KURI.torsoGeo, KURI.cream); torso.scale.set(1.22,1.1,1.0); torso.position.y = .5; body.add(torso);
-  const torsoLine = new THREE.Mesh(KURI.torsoGeo, KURI.line); torsoLine.scale.set(1.22*1.045,1.1*1.045,1.0*1.05); torsoLine.position.y = .5; body.add(torsoLine);
+  const torso = new THREE.Mesh(KURI.torsoGeo, KURI.cream); torso.scale.set(1.04,.94,.9); torso.position.y = .46; body.add(torso);
+  const torsoLine = new THREE.Mesh(KURI.torsoGeo, KURI.line); torsoLine.scale.set(1.04*1.05,.94*1.05,.9*1.05); torsoLine.position.y = .46; body.add(torsoLine);
   // big head in front, its outline overlaps the body so the two read as separate
-  const head = new THREE.Object3D(); head.position.y = .62; head.scale.setScalar(.86); body.add(head);
+  const head = new THREE.Object3D(); head.position.y = .6; body.add(head);
   const b = new THREE.Mesh(KURI.bodyGeo, KURI.faceMat(V.face)); b.scale.z = .9; head.add(b);
   const hull = new THREE.Mesh(KURI.hullGeo, KURI.line); hull.scale.z = .9; head.add(hull);
   [-1,1].forEach(sd=>{
-    const e = KURI.earPos(sd); nub(head, e.x, e.y, -.02, .13, .11, .1);
+    const e = KURI.earPos(sd); nub(head, e.x, e.y, -.02, .1, .085, .08);
     const holding = V.prop && sd === 1;
-    nub(body, .6*sd, holding ? .56 : .5, holding ? .2 : .1, .11, .16, .11).rotation.z = (holding ? 1.0 : .4)*sd;
-    nub(body, .3*sd, .04, .27, .17, .09, .19);
+    nub(body, .55*sd, holding ? .56 : .48, holding ? .16 : .08, .1, .15, .1).rotation.z = (holding ? 1.0 : .4)*sd;
+    nub(body, .24*sd, .04, .22, .16, .085, .18);
   });
   if (V.prop){ PROPS[V.prop](body); const pg = body.children[body.children.length-1]; pg.scale.setScalar(1.35); }
   g.scale.setScalar(scale*.85); scene.add(g);
@@ -398,9 +398,9 @@ function frame(){
   buns.forEach(b=>step(b, dt*sp, t));
   idle += dt; if (!dragging){ yawV *= .92; yaw += yawV; if (idle > 4 && !reduce) yaw += dt*.03; }
   const lead = buns[0].g.position;
-  look.lerp(new THREE.Vector3(lead.x, .95, lead.z), dt*2);
-  const dist = innerWidth < 600 ? 6.4 : 5.6;
-  camera.position.set(look.x + Math.sin(yaw)*dist, 1.8, look.z + Math.cos(yaw)*dist);
+  look.lerp(new THREE.Vector3(lead.x, .9, lead.z), dt*2);
+  const dist = innerWidth < 600 ? 8.6 : 7.2;
+  camera.position.set(look.x + Math.sin(yaw)*dist, 2.3, look.z + Math.cos(yaw)*dist);
   camera.lookAt(look);
   leaves.forEach(m=>{const u=m.userData; m.position.y -= u.v*dt*sp; m.position.x += Math.sin(t*1.3+u.ph)*dt*.4*sp;
     m.rotation.x += u.spin*dt*sp; m.rotation.z += u.spin*.7*dt*sp; if (m.position.y < .03){ m.position.y=.03; m.rotation.set(-Math.PI/2,0,u.ph); if(Math.random()<.004) resetLeaf(m); }});
