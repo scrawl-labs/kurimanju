@@ -69,7 +69,7 @@ const ramp = new THREE.DataTexture(new Uint8Array([90,170,235,255]), 4, 1, THREE
 ramp.minFilter = ramp.magFilter = THREE.NearestFilter; ramp.needsUpdate = true;
 const T = (c, o={}) => new THREE.MeshToonMaterial({color:c, gradientMap:ramp, ...o});
 
-const fog = new THREE.Fog(0xffffff, 18, 48); scene.fog = fog;
+const fog = new THREE.Fog(0xffffff, 12, 62); scene.fog = fog;
 const hemi = new THREE.HemisphereLight(0xffffff, 0x886644, .6); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, .9); sun.position.set(-8,14,6); sun.castShadow = true;
 sun.shadow.mapSize.set(1024,1024); Object.assign(sun.shadow.camera,{left:-16,right:16,top:16,bottom:-16}); scene.add(sun);
@@ -77,7 +77,7 @@ const shade = o => { o.traverse(m=>{ if(m.isMesh){ m.castShadow = true; m.receiv
 
 // ---- ground: a round mossy clearing ----
 const groundMat = T(0x9cb36a);
-const ground = new THREE.Mesh(new THREE.CircleGeometry(40, 48), groundMat);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(90, 48), groundMat);
 ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
 const path = new THREE.Mesh(new THREE.RingGeometry(5.2, 6.4, 48), T(0xd9b98a));
 path.rotation.x = -Math.PI/2; path.position.y = .01; path.receiveShadow = true; scene.add(path);
@@ -91,16 +91,33 @@ const pads = [[-4.2,-2.2],[-2.4,-2.6],[-4.6,-.6]].map(([x,z])=>{const p=new THRE
 
 // round autumn trees
 const leafCols = [0xe8a23a, 0xd9682f, 0xf0c55a, 0xc4472d];
+// cel-shaded autumn trees: tapered trunk and a cluster of smooth, two-tone canopy blobs
+const canopy = [[0xe9a23f,0xffd27c],[0xdf7d3a,0xf8b068],[0xcf5a3a,0xf08c68],[0xf0c45f,0xfbe8a6]];
 function tree(x,z,s){
   const g = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.18*s,.28*s,2*s,6), T(0x6b4630)); trunk.position.y = s; g.add(trunk);
-  const col = leafCols[Math.floor(Math.random()*leafCols.length)];
-  [[0,2.6,0,1.3],[.7,2.2,.2,.9],[-.6,2.3,-.2,.95],[.1,3.3,.1,.8]].forEach(([a,b,c,r])=>{
-    const f = new THREE.Mesh(new THREE.IcosahedronGeometry(r*s,1), T(col)); f.position.set(a*s,b*s,c*s); g.add(f);
-  });
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.11*s,.26*s,2.3*s,10), T(0x7a5338)); trunk.position.y = 1.15*s; trunk.rotation.z = (Math.random()-.5)*.1; g.add(trunk);
+  const [dark, light] = canopy[Math.floor(Math.random()*canopy.length)];
+  [[0,3.0,0,1.3],[-.95,2.6,.2,.95],[1,2.7,-.1,1],[.1,3.8,.1,.95],[-.5,3.4,.75,.75],[.6,3.35,.7,.7],[-.2,2.5,-.8,.8]]
+    .forEach(([a,b,c,r],i)=>{
+      const m = new THREE.Mesh(new THREE.SphereGeometry(r*s,18,14), T(i%3===1 ? light : dark));
+      m.position.set(a*s,b*s,c*s); m.scale.y = .86; g.add(m);
+    });
   g.position.set(x,0,z); g.rotation.y = Math.random()*6; scene.add(shade(g)); return g;
 }
-for (let i=0;i<16;i++){ const a = i/16*Math.PI*2 + Math.random()*.2, r = 10 + Math.random()*5; tree(Math.cos(a)*r, Math.sin(a)*r, .9+Math.random()*.6); }
+for (let i=0;i<14;i++){ const a = i/14*Math.PI*2 + Math.random()*.25, r = 10 + Math.random()*4; tree(Math.cos(a)*r, Math.sin(a)*r, .9+Math.random()*.45); }
+for (let i=0;i<26;i++){ const a = i/26*Math.PI*2 + Math.random()*.2, r = 19 + Math.random()*11; tree(Math.cos(a)*r, Math.sin(a)*r, 1.5+Math.random()*1.1); }
+// rolling hills far away; the fog turns them into soft pastel layers
+const hillMat = T(0xc9b070);
+for (let i=0;i<9;i++){ const a = i/9*Math.PI*2 + .3, r = 44 + (i%3)*5;
+  const h = new THREE.Mesh(new THREE.SphereGeometry(11,24,14), hillMat); h.scale.set(2.3,.6,1.1);
+  h.position.set(Math.cos(a)*r, -1.5, Math.sin(a)*r); h.rotation.y = -a; scene.add(h); }
+// sky gradient dome
+const sky = new THREE.Mesh(new THREE.SphereGeometry(95,24,16), new THREE.ShaderMaterial({
+  side:THREE.BackSide, depthWrite:false, fog:false,
+  uniforms:{uTop:{value:new THREE.Color(0xc9dff0)}, uBot:{value:new THREE.Color(0xf6e6c6)}},
+  vertexShader:'varying float vY; void main(){ vY = normalize(position).y; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+  fragmentShader:'uniform vec3 uTop; uniform vec3 uBot; varying float vY; void main(){ gl_FragColor = vec4(mix(uBot,uTop,smoothstep(0.0,.6,vY)),1.0); }'}));
+sky.renderOrder = -1; scene.add(sky);
 
 // mushrooms
 function mushroom(x,z,s,cap){
@@ -242,7 +259,7 @@ function part(parent, geo, mat, pos, scl=[1,1,1], pad=.025){
 }
 function nub(parent, x,y,z, sx,sy,sz){
   const m = new THREE.Mesh(KURI.nub, KURI.cream); m.position.set(x,y,z); m.scale.set(sx,sy,sz); parent.add(m);
-  const o = new THREE.Mesh(KURI.nub, KURI.line); o.position.copy(m.position); o.scale.set(sx+.028,sy+.028,sz+.028); parent.add(o);
+  const o = new THREE.Mesh(KURI.nub, KURI.line); o.scale.set(1+.028/sx,1+.028/sy,1+.028/sz); m.add(o);
   return m;
 }
 // props held in the right hand (screen right)
@@ -251,21 +268,21 @@ const PROPS = {
     part(g,new THREE.CylinderGeometry(.11,.11,.08,20),toon(0xd9d9d6),[0,.12,0]);
     part(g,new THREE.CylinderGeometry(.11,.11,.12,20),toon(0xd67554),[0,.02,0]);
     part(g,new THREE.CylinderGeometry(.11,.11,.1,20),toon(0xf5c9c4),[0,-.09,0]);
-    g.position.set(.7,.6,.3); h.add(g); },
+    g.position.set(.74,.3,.32); h.add(g); },
   glass(h){ const g=new THREE.Group();
     const c=new THREE.Mesh(new THREE.CylinderGeometry(.17,.14,.34,24,1,true),new THREE.MeshPhongMaterial({color:0xcfeef7,transparent:true,opacity:.55,side:THREE.DoubleSide,shininess:80}));
     g.add(c); const drink=new THREE.Mesh(new THREE.CylinderGeometry(.155,.14,.24,24),new THREE.MeshPhongMaterial({color:0xfff6c8,transparent:true,opacity:.55})); drink.position.y=-.04; g.add(drink);
     const lemon=part(g,new THREE.CylinderGeometry(.09,.09,.025,20),toon(0xf6d84a),[-.15,.15,.05]); lemon.rotation.set(Math.PI/2,0,.4);
-    g.position.set(.68,.56,.4); h.add(g); },
+    g.position.set(.74,.32,.34); h.add(g); },
   manju(h){ const g=new THREE.Group();
     part(g,new THREE.SphereGeometry(.1,16,10,0,Math.PI*2,0,Math.PI/2),toon(0x7a4a32),[0,0,0],[1,.8,1]);
     part(g,new THREE.CylinderGeometry(.1,.095,.06,16),toon(0xf2d3a2),[0,-.03,0]);
-    g.position.set(.38,.58,.5); h.add(g); },
+    g.position.set(.44,.34,.5); h.add(g); },
   sausage(h){ const g=new THREE.Group();
     const s=part(g,new THREE.CylinderGeometry(.06,.06,.3,14),toon(0xa8432e),[0,0,0]); s.rotation.z=Math.PI/2+.15;
     [-.15,.15].forEach(x=>part(g,new THREE.SphereGeometry(.06,12,8),toon(0xa8432e),[x,x*.15,0]));
-    const fork=part(g,new THREE.CylinderGeometry(.012,.012,.5,6),toon(0xbfc3c7),[.27,-.17,0],[1,1,1],.01); fork.rotation.z=.9;
-    g.position.set(.1,1.1,.8); h.add(g); },
+    const fork=part(g,new THREE.CylinderGeometry(.012,.012,.5,6),toon(0xbfc3c7),[.22,-.2,0],[1,1,1],.01); fork.rotation.z=.9;
+    g.position.set(.7,.3,.34); h.add(g); },
 };
 // the five versions, from the reference pictures
 const VARIANTS = [
@@ -285,25 +302,30 @@ function makeBun(scale=1, variant=0){
   const head = new THREE.Object3D(); head.position.y = .6; body.add(head);
   const b = new THREE.Mesh(KURI.bodyGeo, KURI.faceMat(V.face)); b.scale.z = .9; head.add(b);
   const hull = new THREE.Mesh(KURI.hullGeo, KURI.line); hull.scale.z = .9; head.add(hull);
+  const feet = [];
   [-1,1].forEach(sd=>{
     const e = KURI.earPos(sd); nub(head, e.x, e.y, -.02, .1, .085, .08);
     const holding = V.prop && sd === 1;
-    nub(body, .55*sd, holding ? .56 : .48, holding ? .16 : .08, .1, .15, .1).rotation.z = (holding ? 1.0 : .4)*sd;
-    nub(body, .24*sd, .04, .22, .16, .085, .18);
+    nub(body, .56*sd, holding ? .44 : .48, holding ? .2 : .08, .1, .15, .1).rotation.z = (holding ? 1.1 : .4)*sd;
+    feet.push(nub(body, .24*sd, .04, .22, .16, .085, .18));
   });
   if (V.prop){ PROPS[V.prop](body); const pg = body.children[body.children.length-1]; pg.scale.setScalar(1.35); }
   g.scale.setScalar(scale*.85); scene.add(g);
   g.traverse(m=>{ if (m.isMesh && m.material !== KURI.line){ m.castShadow = true; } });
-  const bun = {g, body, head, variant, speed:.9+Math.random()*.4, target:new THREE.Vector3(), wait:Math.random()*2, ph:Math.random()*9, hop:0};
+  const bun = {g, body, head, feet, wp:0, dirYaw:0, variant, speed:.9+Math.random()*.4, target:new THREE.Vector3(), wait:Math.random()*2, ph:Math.random()*9, hop:0};
   g.position.set((Math.random()-.5)*6, 0, (Math.random()-.5)*6 + 1);
   pick(bun); return bun;
 }
 function pick(bun){
-  for (let i=0;i<20;i++){ // avoid the pond
-    const a=Math.random()*Math.PI*2, r=Math.random()*7.5;
-    bun.target.set(Math.cos(a)*r,0,Math.sin(a)*r);
-    if (bun.target.distanceTo(new THREE.Vector3(-3.2,0,-1.5))>3.4) return;
+  const p = bun.g.position, pond = new THREE.Vector3(-3.2,0,-1.5);
+  for (let i=0;i<30;i++){
+    let ang = Math.random()*Math.PI*2;
+    if (Math.random() < .5) ang = Math.atan2(camera.position.x-p.x, camera.position.z-p.z) + (Math.random()-.5)*1.4;
+    const r = 2 + Math.random()*3.5;
+    bun.target.set(p.x + Math.sin(ang)*r, 0, p.z + Math.cos(ang)*r);
+    if (bun.target.length() < 8 && bun.target.distanceTo(pond) > 3.4) return;
   }
+  bun.target.set((Math.random()-.5)*6, 0, (Math.random()-.5)*6);
 }
 const myVariant = Math.floor(Math.random()*5);
 const buns = [makeBun(1, myVariant)];
@@ -312,34 +334,42 @@ function step(bun, dt, t){
   const p = bun.g.position, to = bun.target.clone().sub(p); to.y = 0;
   let walking = false;
   if (bun.wait > 0){ bun.wait -= dt; if (bun.wait<=0) pick(bun); }
-  else if (to.length() < .2){ bun.wait = 1.2 + Math.random()*3; }
-  else {
-    walking = true; to.normalize(); p.addScaledVector(to, bun.speed*dt); bun.dirX = to.x; bun.dirZ = to.z;
-  }
-  // always show the face: look at the camera, leaning only a little toward the walking direction
+  else if (to.length() < .2){ bun.wait = 1.5 + Math.random()*3.5; }
+  else { walking = true; bun.dirYaw = Math.atan2(to.x, to.z); }
+  // turn to face where it is going; when resting, turn back to the camera
   const camYaw = Math.atan2(camera.position.x-p.x, camera.position.z-p.z);
-  let want = camYaw;
-  if (walking){ const rel = Math.atan2(bun.dirX, bun.dirZ) - camYaw; want += Math.sin(rel)*.55; }
-  let dd = want - bun.g.rotation.y; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); bun.g.rotation.y += dd*Math.min(1, dt*6);
-  const ph = t*9 + bun.ph;
-  let y = walking ? Math.abs(Math.sin(ph))*.035 : 0;
-  if (bun.hop > 0){ bun.hop -= dt*1.6; y += Math.sin((1-Math.max(bun.hop,0))*Math.PI)*.6; }
-  bun.body.position.y = y; bun.body.rotation.z = walking ? Math.sin(ph)*.06 : 0;
-  bun.head.rotation.z = walking ? Math.sin(ph+1)*.05 : Math.sin(t*.8+bun.ph)*.04;
+  const want = walking ? bun.dirYaw : camYaw;
+  let dd = want - bun.g.rotation.y; dd = Math.atan2(Math.sin(dd), Math.cos(dd));
+  bun.g.rotation.y += dd*Math.min(1, dt*(walking ? 7 : 3));
+  const moving = walking && Math.abs(dd) < .55;
+  if (moving){
+    const r = bun.g.rotation.y;
+    p.x += Math.sin(r)*bun.speed*dt; p.z += Math.cos(r)*bun.speed*dt;
+    bun.wp += dt*bun.speed*7.5;
+  }
+  // feet swing forward and back and lift in turn; the body rocks from side to side
+  bun.feet.forEach((f,i)=>{
+    const ph = bun.wp + (i ? Math.PI : 0);
+    f.position.z = .22 + (moving ? Math.sin(ph)*.14 : 0);
+    f.position.y = .04 + (moving ? Math.max(0, Math.cos(ph))*.08 : 0);
+  });
+  bun.body.position.y = moving ? Math.abs(Math.sin(bun.wp))*.05 : 0;
+  bun.body.rotation.z = moving ? Math.sin(bun.wp)*.06 : 0;
+  bun.head.rotation.z = moving ? Math.sin(bun.wp+1)*.04 : Math.sin(t*.8+bun.ph)*.035;
   const sq = 1 + Math.sin(t*1.6+bun.ph)*.008;
   bun.body.scale.set(1/Math.sqrt(sq), sq, 1/Math.sqrt(sq));
 }
 
 // ---- time of day ----
 const TIMES = [
-  {sky:0xf6e6c6, ground:0x9cb36a, hemi:[0xfff6e0,0x8a6a44,.65], sun:[0xfff2d8,.95], lamp:0, fly:0, page:'#f3e3c8'},
-  {sky:0xf2a77c, ground:0x9a9a58, hemi:[0xffc9a0,0x6a3a3a,.55], sun:[0xff9a62,.85], lamp:.6, fly:.2, page:'#efb08a'},
-  {sky:0x1e2448, ground:0x3e5440, hemi:[0x7f8ad8,0x1a1a2c,.4], sun:[0x9fb0ff,.25], lamp:2.2, fly:1, page:'#1e2448'},
+  {hill:0xd9c58a, top:0xbcd8ee, sky:0xf6e6c6, ground:0x9cb36a, hemi:[0xfff6e0,0x8a6a44,.65], sun:[0xfff2d8,.95], lamp:0, fly:0, page:'#f3e3c8'},
+  {hill:0xc89a78, top:0x9a86bb, sky:0xf2a77c, ground:0x9a9a58, hemi:[0xffc9a0,0x6a3a3a,.55], sun:[0xff9a62,.85], lamp:.6, fly:.2, page:'#efb08a'},
+  {hill:0x2c3a58, top:0x0d1030, sky:0x1e2448, ground:0x3e5440, hemi:[0x7f8ad8,0x1a1a2c,.4], sun:[0x9fb0ff,.25], lamp:2.2, fly:1, page:'#1e2448'},
 ];
 let flyLevel = 0, flyTarget = 0;
 function setTime(i){
   const c = TIMES[i];
-  scene.background = new THREE.Color(c.sky); fog.color.set(c.sky); groundMat.color.set(c.ground);
+  scene.background = new THREE.Color(c.sky); fog.color.set(c.sky); sky.material.uniforms.uTop.value.set(c.top); sky.material.uniforms.uBot.value.set(c.sky); hillMat.color.set(c.hill); groundMat.color.set(c.ground);
   hemi.color.set(c.hemi[0]); hemi.groundColor.set(c.hemi[1]); hemi.intensity = c.hemi[2];
   sun.color.set(c.sun[0]); sun.intensity = c.sun[1]; lampLight.intensity = c.lamp;
   lampMat.color.set(c.lamp>1 ? 0xffe2a0 : 0xd8c9a8); flyTarget = c.fly;
