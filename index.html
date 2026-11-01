@@ -272,7 +272,7 @@ const PROPS = {
   glass(h){ const g=new THREE.Group();
     const c=new THREE.Mesh(new THREE.CylinderGeometry(.17,.14,.34,24,1,true),new THREE.MeshPhongMaterial({color:0xf2fbff,transparent:true,opacity:.35,side:THREE.DoubleSide,shininess:90}));
     g.add(c); const drink=new THREE.Mesh(new THREE.CylinderGeometry(.155,.14,.24,24),new THREE.MeshToonMaterial({color:0xffee9a,gradientMap:bunRamp})); drink.position.y=-.04; g.add(drink);
-    const lemon=part(g,new THREE.CylinderGeometry(.09,.09,.025,20),toon(0xf6d84a),[-.15,.15,.05]); lemon.rotation.set(Math.PI/2,0,.4);
+    const lemon=part(g,new THREE.CylinderGeometry(.055,.055,.02,20),toon(0xf6d84a),[-.15,.17,.05]); lemon.rotation.set(Math.PI/2,0,.4);
     g.position.set(.27,.4,.52); h.add(g); return [.49,.38,.38]; },
   manju(h){ const g=new THREE.Group();
     part(g,new THREE.SphereGeometry(.1,16,10,0,Math.PI*2,0,Math.PI/2),toon(0x7a4a32),[0,0,0],[1,.8,1]);
@@ -433,6 +433,20 @@ const clock = new THREE.Clock(), look = new THREE.Vector3(0,.6,0);
 function frame(){
   const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime, sp = reduce ? .4 : 1;
   buns.forEach(b=>step(b, dt*sp, t));
+  // keep the characters from walking through each other
+  const hit = new Set();
+  for (let i=0;i<buns.length;i++) for (let j=i+1;j<buns.length;j++){
+    const A = buns[i], B = buns[j], pa = A.g.position, pb = B.g.position;
+    let dx = pb.x-pa.x, dz = pb.z-pa.z, d = Math.hypot(dx,dz);
+    const min = (A.g.scale.x + B.g.scale.x) * .8;
+    if (d >= min) continue;
+    if (d < .001){ const a = Math.random()*6.28; dx = Math.sin(a); dz = Math.cos(a); d = 1; }
+    const push = (min-d) * .5 * Math.min(1, dt*14), nx = dx/d, nz = dz/d;
+    pa.x -= nx*push; pa.z -= nz*push; pb.x += nx*push; pb.z += nz*push;
+    hit.add(A); hit.add(B);
+  }
+  // someone stuck against another one picks a new place to go
+  buns.forEach(b=>{ b.blockT = hit.has(b) ? (b.blockT||0) + dt : 0; if (b.blockT > 1.2){ b.blockT = 0; b.wait = 0; pick(b); } });
   idle += dt; if (!dragging){ yawV *= .92; yaw += yawV; if (idle > 4 && !reduce) yaw += dt*.03; }
   const lead = buns[0].g.position;
   look.lerp(new THREE.Vector3(lead.x, .9, lead.z), dt*2);
