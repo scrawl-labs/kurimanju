@@ -192,6 +192,9 @@ const KURI = (() => {
     g.beginPath(); g.moveTo(0,0);
     for (let px=0; px<=W; px+=4){ const phi=(px/W-.5)*2*Math.PI; g.lineTo(px, (1-at(edgeY(phi)).s/L)*H); }
     g.lineTo(W,0); g.closePath(); g.fillStyle='#9a6650'; g.fill();
+    // outline only along the cap's lower edge, so no stray line shows where the texture wraps around the back
+    g.beginPath();
+    for (let px=0; px<=W; px+=4){ const phi=(px/W-.5)*2*Math.PI; const y=(1-at(edgeY(phi)).s/L)*H; if (px===0) g.moveTo(px,y); else g.lineTo(px,y); }
     g.strokeStyle='#3a2218'; g.lineWidth=.022*k; g.lineJoin='round'; g.stroke();
     const ink = '#2a1610';
     [-1,1].forEach(sd=>{
@@ -413,13 +416,48 @@ function syncPeers(peers){
   youMark.visible = people.size > 1;
   countEl.textContent = buns.length;
 }
+// ---- Online mode for a normally hosted site -------------------------------------------------
+// Everyone who has the page open shares one forest. This uses Supabase Realtime "presence":
+// no server code and no database table. Create a free Supabase project, then paste the two
+// values from Project Settings > API here (the anon key is meant to be public).
+const KURI_ONLINE = { url: '', anonKey: '' };
+async function supabaseRoom(){
+  if (!KURI_ONLINE.url || !KURI_ONLINE.anonKey) return null;
+  if (!window.supabase){
+    await new Promise((ok, fail) => { const sc = document.createElement('script');
+      sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
+      sc.onload = ok; sc.onerror = fail; document.head.appendChild(sc); });
+  }
+  const client = window.supabase.createClient(KURI_ONLINE.url, KURI_ONLINE.anonKey);
+  const myKey = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
+  const ch = client.channel('kurimanju-forest', {config:{presence:{key:myKey}}});
+  let listener = null;
+  const publish = () => {
+    if (!listener) return;
+    const peers = Object.entries(ch.presenceState()).map(([key, metas]) => {
+      const m = metas[metas.length-1] || {};
+      return {peer:key, kind:'viewer', sameTab:key === myKey, presence:{v:m.v}};
+    });
+    listener({peers});
+  };
+  ch.on('presence', {event:'sync'}, publish);
+  await new Promise((ok, fail) => ch.subscribe(st => {
+    if (st === 'SUBSCRIBED'){ ch.track({v:myVariant}); ok(); }
+    else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') fail(new Error(st));
+  }));
+  return {onPeers(fn){ listener = fn; publish(); }};
+}
 (async () => {
   try {
-    const room = await window.claude?.use?.('room');
-    if (!room) return;
-    room.presence({v: myVariant}).catch(()=>{});
-    room.onPeers(ch => syncPeers(ch.peers), () => {});
-  } catch (e) {}
+    const room = await window.claude?.use?.('room');       // inside a claude.ai artifact
+    if (room){
+      room.presence({v: myVariant}).catch(()=>{});
+      room.onPeers(ch => syncPeers(ch.peers), () => {});
+      return;
+    }
+    const sb = await supabaseRoom();                        // on a normal website
+    if (sb) sb.onPeers(ch => syncPeers(ch.peers));
+  } catch (e) { console.warn('online mode unavailable, showing the solo forest', e); }
 })();
 
 // ---- drag to orbit ----
