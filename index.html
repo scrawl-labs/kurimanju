@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>kurimanju</title>
+<title>bamtori</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -11,7 +11,7 @@
 </head>
 <body>
 <style>
-/* Layout: full-bleed 3D forest floor; music and time-of-day controls bottom-right. */
+/* Layout: full-bleed 3D forest floor; a small caption bottom-left and time-of-day + friend controls bottom-right. */
 :root{
   --bg:#f3e3c8;
   --ink:#3b2a20;
@@ -44,7 +44,7 @@ svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 
-<canvas id="view" aria-label="밤만쥬가 가을 숲을 걸어다니는 3D 장면"></canvas>
+<canvas id="view" aria-label="밤톨이들이 마을 숲을 걸어 다니는 3D 장면"></canvas>
 <div class="ui">
   <div class="ctl">
     <div class="seg" id="musicWrap" hidden>
@@ -116,6 +116,47 @@ function tree(x,z,s){
 }
 for (let i=0;i<14;i++){ const a = i/14*Math.PI*2 + Math.random()*.25, r = 10 + Math.random()*4; tree(Math.cos(a)*r, Math.sin(a)*r, .9+Math.random()*.45); }
 for (let i=0;i<26;i++){ const a = i/26*Math.PI*2 + Math.random()*.2, r = 19 + Math.random()*11; tree(Math.cos(a)*r, Math.sin(a)*r, 1.5+Math.random()*1.1); }
+// ---- little white dome houses with an arched door and a cross window ----
+const HOUSES = [[7.6,-5.6,1.05],[-9,-3.8,1.1],[9.2,2.6,.95],[-7.4,6.2,1],[2.4,-9.4,1.1],[-1.6,9.2,.9]];
+(function(){
+  const R = 1.3, SX = 1.15, SY = .82, SZ = 1.0, A = R*SX, B = R*SY, C = R*SZ;
+  const domeGeo = new THREE.SphereGeometry(R, 36, 20, 0, Math.PI*2, 0, Math.PI/2);
+  const lightRamp = new THREE.DataTexture(new Uint8Array([215,250]), 2, 1, THREE.LuminanceFormat); lightRamp.minFilter = lightRamp.magFilter = THREE.NearestFilter; lightRamp.needsUpdate = true;
+  const wall = new THREE.MeshToonMaterial({color:0xfff8ee, gradientMap:lightRamp, emissive:0x6a5a4e});
+  const lineMat = new THREE.MeshBasicMaterial({color:0x4a2f26, side:THREE.BackSide});
+  const surf = (x,y) => C*Math.sqrt(Math.max(0, 1-(x/A)**2-(y/B)**2));
+  const tex = (w,h,draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t; };
+  const doorTex = tex(256,320,(g,w,h)=>{
+    g.beginPath(); g.moveTo(22,h); g.lineTo(22,128); g.arc(w/2,128,w/2-22,Math.PI,0); g.lineTo(w-22,h);
+    g.fillStyle='#cfe8e6'; g.fill(); g.lineWidth=15; g.strokeStyle='#4a2f26'; g.lineJoin='round'; g.stroke(); });
+  const winTex = tex(160,160,(g,w,h)=>{
+    g.fillStyle='#eaf4f4'; g.fillRect(14,14,w-28,h-28); g.strokeStyle='#4a2f26'; g.lineWidth=12; g.strokeRect(14,14,w-28,h-28);
+    g.lineWidth=9; g.beginPath(); g.moveTo(w/2,14); g.lineTo(w/2,h-14); g.moveTo(14,h/2); g.lineTo(w-14,h/2); g.stroke(); });
+  const decal = (t, w, h, cx, cy) => {
+    const geo = new THREE.PlaneGeometry(w, h, 12, 12), p = geo.attributes.position;
+    for (let i=0;i<p.count;i++){ const x = p.getX(i)+cx, y = p.getY(i)+cy; p.setXYZ(i, x, y, surf(x,y)+.015); }
+    return new THREE.Mesh(geo, new THREE.MeshBasicMaterial({map:t, transparent:true, polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3})); };
+  HOUSES.forEach(([x,z,s])=>{
+    const g = new THREE.Group();
+    const dome = new THREE.Mesh(domeGeo, wall); dome.scale.set(SX,SY,SZ); g.add(dome);
+    const line = new THREE.Mesh(domeGeo, lineMat); line.scale.set(SX*1.035,SY*1.05,SZ*1.035); g.add(line);
+    g.add(decal(doorTex, .62, .78, 0, .39));
+    g.add(decal(winTex, .38, .38, -.66, .78));
+    g.position.set(x,0,z); g.scale.setScalar(s); g.rotation.y = Math.atan2(-x,-z);
+    scene.add(shade(g));
+    for (let i=0;i<4;i++){ const m = new THREE.Mesh(new THREE.BoxGeometry(.35+Math.random()*.2,.01,.02), new THREE.MeshBasicMaterial({color:0x4a2f26, transparent:true, opacity:.4}));
+      const a = Math.random()*6.28, r = (1.8+Math.random()*.7)*s; m.position.set(x+Math.cos(a)*r,.02,z+Math.sin(a)*r); m.rotation.y = Math.random()*3; scene.add(m); }
+  });
+})();
+// tufts of grass
+(function(){
+  const mat = T(0x5f8c47), cone = new THREE.ConeGeometry(.04,.3,4);
+  for (let i=0;i<46;i++){
+    const a = Math.random()*6.28, r = 2+Math.random()*9, g = new THREE.Group();
+    for (let j=-1;j<=1;j++){ const c = new THREE.Mesh(cone, mat); c.position.set(j*.07,.14,0); c.rotation.z = -j*.28; g.add(c); }
+    g.position.set(Math.cos(a)*r,0,Math.sin(a)*r); g.rotation.y = Math.random()*3; scene.add(g);
+  }
+})();
 // rolling hills far away; the fog turns them into soft pastel layers
 const hillMat = T(0xc9b070);
 for (let i=0;i<9;i++){ const a = i/9*Math.PI*2 + .3, r = 44 + (i%3)*5;
@@ -177,7 +218,7 @@ const flyGeo = new THREE.SphereGeometry(.05,6,4);
 const flies = Array.from({length:36},()=>{const m=new THREE.Mesh(flyGeo,new THREE.MeshBasicMaterial({color:0xfff3a0,transparent:true,opacity:0}));
   m.userData={o:new THREE.Vector3((Math.random()-.5)*20,.4+Math.random()*2.5,(Math.random()-.5)*20),ph:Math.random()*9};scene.add(m);return m;});
 
-// ---- Kurimanju: one soft bean-shaped body (head wider than body), chestnut cap with a curved edge ----
+// ---- The mascot: one soft bean-shaped body (head wider than body), chestnut cap with a curved edge ----
 const LINE = 0x3a2218;
 const bunRamp = new THREE.DataTexture(new Uint8Array([150,190]), 2, 1, THREE.LuminanceFormat);
 bunRamp.minFilter = bunRamp.magFilter = THREE.NearestFilter; bunRamp.needsUpdate = true;
@@ -192,65 +233,50 @@ const KURI = (() => {
   const at = y => { for (let i=1;i<prof.length;i++) if (prof[i].y>=y){ const f=(y-prof[i-1].y)/(prof[i].y-prof[i-1].y||1);
       return {r:prof[i-1].x+(prof[i].x-prof[i-1].x)*f, s:S[i-1]+(S[i]-S[i-1])*f}; } return {r:0,s:L}; };
   const W = 2048, H = Math.round(W*L/(2*Math.PI*RH)), k = W/(2*Math.PI*RH);
-  const edgeY = phi => .78 + .29*(1-Math.cos(2*phi))/2;
+  const edgeY = phi => .86 + .24*(1-Math.cos(2*phi))/2 - .045*Math.abs(Math.sin(4*phi));
 
   // one texture per expression; u wraps around (front = centre), v follows arc length
   function face(kind){
     const cv = document.createElement('canvas'); cv.width=W; cv.height=H; const g = cv.getContext('2d');
     const P = (x,y) => { const q = at(y); return [W/2 + Math.asin(Math.max(-1,Math.min(1,x/q.r)))/(2*Math.PI)*W, (1-q.s/L)*H]; };
-    g.fillStyle = '#fde4bd'; g.fillRect(0,0,W,H);
+    g.fillStyle = '#f7d5c2'; g.fillRect(0,0,W,H);
+    // chestnut cap with a scalloped lower edge
     g.beginPath(); g.moveTo(0,0);
     for (let px=0; px<=W; px+=4){ const phi=(px/W-.5)*2*Math.PI; g.lineTo(px, (1-at(edgeY(phi)).s/L)*H); }
-    g.lineTo(W,0); g.closePath(); g.fillStyle='#9a6650'; g.fill();
-    // outline only along the cap's lower edge, so no stray line shows where the texture wraps around the back
+    g.lineTo(W,0); g.closePath();
+    const cg = g.createLinearGradient(0,0,0,H*.34); cg.addColorStop(0,'#74482f'); cg.addColorStop(1,'#a06f50');
+    g.fillStyle = cg; g.fill();
     g.beginPath();
     for (let px=0; px<=W; px+=4){ const phi=(px/W-.5)*2*Math.PI; const y=(1-at(edgeY(phi)).s/L)*H; if (px===0) g.moveTo(px,y); else g.lineTo(px,y); }
     g.strokeStyle='#3a2218'; g.lineWidth=.022*k; g.lineJoin='round'; g.stroke();
-    const ink = '#2a1610';
+    const [hx,hy] = P(-.28, 1.36); g.fillStyle='rgba(255,232,205,.3)'; g.beginPath(); g.ellipse(hx,hy,.12*k,.05*k,-.4,0,7); g.fill();
+    const ink = '#2e1a14';
     [-1,1].forEach(sd=>{
-      const [ex,ey] = P(.27*sd, .58);
-      g.fillStyle=ink; g.beginPath(); g.ellipse(ex,ey,.06*k,.066*k,0,0,7); g.fill();
-      g.fillStyle='#fff'; g.beginPath(); g.ellipse(ex,ey+.014*k,.032*k,.024*k,0,0,7); g.fill();
-      g.fillStyle=ink; g.beginPath(); g.ellipse(ex,ey+.007*k,.036*k,.03*k,0,0,7); g.fill();
-      g.fillStyle='#fff'; g.beginPath(); g.arc(ex-.02*k,ey-.023*k,.018*k,0,7); g.fill();
-      const [bx,by] = P(.5*sd, .42);
-      g.fillStyle='#f7b3c2'; g.beginPath(); g.ellipse(bx,by,.135*k,.08*k,0,0,7); g.fill();
-      g.strokeStyle='#5a3328'; g.lineWidth=.013*k; g.lineCap='round';
-      for (let j=-1;j<=1;j++){ const x=bx+j*.058*k; g.beginPath(); g.moveTo(x+.018*k,by-.04*k); g.lineTo(x-.018*k,by+.04*k); g.stroke(); }
+      // round glossy eyes with a small brow above
+      const [ex,ey] = P(.29*sd, .6);
+      g.fillStyle=ink; g.beginPath(); g.ellipse(ex,ey,.056*k,.07*k,0,0,7); g.fill();
+      g.fillStyle='#fff'; g.beginPath(); g.arc(ex-.017*k,ey-.026*k,.02*k,0,7); g.fill();
+      g.beginPath(); g.arc(ex+.017*k,ey+.029*k,.01*k,0,7); g.fill();
+      const [bx,by] = P(.29*sd, .75);
+      g.strokeStyle=ink; g.lineWidth=.011*k; g.lineCap='round';
+      g.beginPath(); g.arc(bx,by+.03*k,.038*k,Math.PI*1.18,Math.PI*1.82); g.stroke();
+      // plain soft cheeks with a tiny shine
+      const [cx,cy] = P(.53*sd, .45);
+      g.fillStyle='rgba(247,140,168,.62)'; g.beginPath(); g.ellipse(cx,cy,.095*k,.078*k,0,0,7); g.fill();
+      g.fillStyle='rgba(255,255,255,.8)'; g.beginPath(); g.arc(cx-.027*k,cy-.022*k,.012*k,0,7); g.fill();
     });
-    g.strokeStyle=ink; g.fillStyle=ink; g.lineCap='round'; g.lineJoin='round'; g.lineWidth=.016*k;
-    const [wx,wy] = P(0, .64);
-    const line = (x1,y1,x2,y2)=>{ g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.stroke(); };
-    if (kind === 'open'){
-      // scrunched nose lines fanning out
-      [-2,-1,0,1,2].forEach(j=>line(wx+j*.032*k, wy-.04*k+Math.abs(j)*.01*k, wx+j*.042*k, wy+.02*k));
-      line(wx-.07*k, wy+.04*k, wx+.07*k, wy+.04*k);
-      // wide open mouth with teeth and tongue
-      const [mx,my] = P(0, .47), w=.065*k, h=.09*k;
-      g.beginPath(); g.moveTo(mx-w, my-h*.45);
-      g.quadraticCurveTo(mx-w*.5, my-h*.2, mx, my-h*.5); g.quadraticCurveTo(mx+w*.5, my-h*.2, mx+w, my-h*.45);
-      g.quadraticCurveTo(mx+w*.8, my+h*.9, mx, my+h*.8); g.quadraticCurveTo(mx-w*.8, my+h*.9, mx-w, my-h*.45); g.closePath();
-      g.fillStyle='#4a1d1d'; g.fill(); g.stroke();
-      g.save(); g.clip();
-      g.fillStyle='#e9849a'; g.beginPath(); g.ellipse(mx, my+h*.65, w*.55, h*.45, 0, 0, 7); g.fill();
-      g.fillStyle='#fff';
-      for (let i=-3;i<=3;i++){ const tx=mx+i*w*.24; g.beginPath(); g.moveTo(tx-w*.1,my-h*.5); g.lineTo(tx+w*.1,my-h*.5); g.lineTo(tx,my-h*.12); g.fill(); }
-      g.restore();
-      const [cx2,cy2] = P(0, .33); line(cx2-.03*k, cy2, cx2+.03*k, cy2);
-    } else {
-      [-1,0,1].forEach(j=>line(wx+j*.03*k, wy-.022*k, wx+j*.03*k+.004*k, wy+.012*k));
-      const [mx,my] = P(0, .49), m=.034*k;
-      g.beginPath(); g.moveTo(mx-1.9*m, my-.5*m);
-      g.quadraticCurveTo(mx-1.6*m, my+.9*m, mx-.8*m, my+.6*m); g.quadraticCurveTo(mx-.2*m, my+.35*m, mx, my-.15*m);
-      g.quadraticCurveTo(mx+.2*m, my+.35*m, mx+.8*m, my+.6*m); g.quadraticCurveTo(mx+1.6*m, my+.9*m, mx+1.9*m, my-.5*m); g.stroke();
-      const [cx2,cy2] = P(0, .41);
-      g.beginPath(); g.moveTo(cx2-.03*k, cy2-.008*k); g.quadraticCurveTo(cx2, cy2+.022*k, cx2+.03*k, cy2-.008*k); g.stroke();
-      if (kind === 'munch'){ // crumbs on the cheek
-        g.fillStyle='#b57a4c'; [[.12,.45,.016],[.15,.41,.011],[-.13,.43,.012]].forEach(([x,y,r])=>{const [px,py]=P(x,y); g.beginPath(); g.arc(px,py,r*k,0,7); g.fill(); g.stroke();});
-      }
-      if (kind === 'sip'){ // little droplet under the mouth
-        const [dx,dy] = P(-.04, .44); g.beginPath(); g.moveTo(dx,dy-.02*k); g.quadraticCurveTo(dx+.022*k,dy+.02*k,dx,dy+.03*k); g.quadraticCurveTo(dx-.022*k,dy+.02*k,dx,dy-.02*k); g.stroke();
-      }
+    g.strokeStyle=ink; g.fillStyle=ink; g.lineCap='round'; g.lineJoin='round'; g.lineWidth=.014*k;
+    const [mx,my] = P(0, .48);
+    if (kind === 'open'){            // happy open smile
+      g.beginPath(); g.moveTo(mx-.07*k,my-.035*k); g.quadraticCurveTo(mx,my+.13*k,mx+.07*k,my-.035*k); g.closePath();
+      g.fillStyle='#5a2226'; g.fill(); g.stroke();
+      g.save(); g.clip(); g.fillStyle='#ef8a9c'; g.beginPath(); g.ellipse(mx,my+.075*k,.045*k,.03*k,0,0,7); g.fill(); g.restore();
+    } else if (kind === 'munch'){    // chewing
+      g.beginPath(); g.ellipse(mx,my+.01*k,.024*k,.03*k,0,0,7); g.fill();
+      g.fillStyle='#b57a4c'; [[.16,.5,.016],[.19,.45,.011],[-.15,.47,.012]].forEach(([x,y,r])=>{const [px,py]=P(x,y); g.beginPath(); g.arc(px,py,r*k,0,7); g.fill();});
+    } else {                         // tiny smile
+      g.beginPath(); g.arc(mx,my-.012*k,.038*k,.14*Math.PI,.86*Math.PI); g.stroke();
+      if (kind === 'sip'){ const [dx,dy] = P(.1,.43); g.beginPath(); g.moveTo(dx,dy-.022*k); g.quadraticCurveTo(dx+.024*k,dy+.02*k,dx,dy+.032*k); g.quadraticCurveTo(dx-.024*k,dy+.02*k,dx,dy-.022*k); g.stroke(); }
     }
     const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 8;
     return new THREE.MeshToonMaterial({map:tex, gradientMap:bunRamp});
@@ -258,10 +284,10 @@ const KURI = (() => {
   const bodyGeo = new THREE.LatheGeometry(prof, 72, Math.PI, Math.PI*2);
   const hullGeo = bodyGeo.clone(); { const p=hullGeo.attributes.position, n=hullGeo.attributes.normal;
     for (let i=0;i<p.count;i++) p.setXYZ(i, p.getX(i)+n.getX(i)*.028, p.getY(i)+n.getY(i)*.028, p.getZ(i)+n.getZ(i)*.028); }
-  const earPos = sd => { const y=1.0, q=at(y); return new THREE.Vector3(q.r*.98*sd, y, 0); };
+  const earPos = sd => { const y=1.1, q=at(y); return new THREE.Vector3(q.r*.9*sd, y, -.02); };
   const torsoGeo = new THREE.SphereGeometry(.52, 40, 28);
   const faces = {}; const faceMat = kind => faces[kind] || (faces[kind] = face(kind));
-  return { bodyGeo, hullGeo, torsoGeo, earPos, faceMat, cream: toon(0xfde4bd),
+  return { bodyGeo, hullGeo, torsoGeo, earPos, faceMat, cream: toon(0xf7d5c2), capMat: toon(0x8a5a42), leafMat: toon(0x7fb55a),
     line: new THREE.MeshBasicMaterial({color:LINE, side:THREE.BackSide}), nub: new THREE.SphereGeometry(1, 20, 14) };
 })();
 // outlined part: the mesh plus a slightly larger back-face shell in the line colour
@@ -270,8 +296,8 @@ function part(parent, geo, mat, pos, scl=[1,1,1], pad=.025){
   const o = new THREE.Mesh(geo, KURI.line); o.scale.set(1+pad/Math.max(.05,scl[0])*0+pad*3, 1+pad*3, 1+pad*3); m.add(o);
   return m;
 }
-function nub(parent, x,y,z, sx,sy,sz){
-  const m = new THREE.Mesh(KURI.nub, KURI.cream); m.position.set(x,y,z); m.scale.set(sx,sy,sz); parent.add(m);
+function nub(parent, x,y,z, sx,sy,sz, mat){
+  const m = new THREE.Mesh(KURI.nub, mat || KURI.cream); m.position.set(x,y,z); m.scale.set(sx,sy,sz); parent.add(m);
   const o = new THREE.Mesh(KURI.nub, KURI.line); o.scale.set(1+.028/sx,1+.028/sy,1+.028/sz); m.add(o);
   return m;
 }
@@ -279,8 +305,8 @@ function nub(parent, x,y,z, sx,sy,sz){
 const PROPS = {
   can(h){ const g=new THREE.Group();
     part(g,new THREE.CylinderGeometry(.11,.11,.08,20),toon(0xd9d9d6),[0,.12,0]);
-    part(g,new THREE.CylinderGeometry(.11,.11,.12,20),toon(0xd67554),[0,.02,0]);
-    part(g,new THREE.CylinderGeometry(.11,.11,.1,20),toon(0xf5c9c4),[0,-.09,0]);
+    part(g,new THREE.CylinderGeometry(.11,.11,.12,20),toon(0x6fc4b8),[0,.02,0]);
+    part(g,new THREE.CylinderGeometry(.11,.11,.1,20),toon(0xfdf3e7),[0,-.09,0]);
     g.position.set(.34,.38,.5); h.add(g); return [.49,.4,.35]; },
   glass(h){ const g=new THREE.Group();
     const c=new THREE.Mesh(new THREE.CylinderGeometry(.17,.14,.34,24,1,true),new THREE.MeshPhongMaterial({color:0xf2fbff,transparent:true,opacity:.35,side:THREE.DoubleSide,shininess:90}));
@@ -288,14 +314,14 @@ const PROPS = {
     const lemon=part(g,new THREE.CylinderGeometry(.055,.055,.02,20),toon(0xf6d84a),[-.15,.17,.05]); lemon.rotation.set(Math.PI/2,0,.4);
     g.position.set(.27,.4,.52); h.add(g); return [.49,.38,.38]; },
   manju(h){ const g=new THREE.Group();
-    part(g,new THREE.SphereGeometry(.1,16,10,0,Math.PI*2,0,Math.PI/2),toon(0x7a4a32),[0,0,0],[1,.8,1]);
-    part(g,new THREE.CylinderGeometry(.1,.095,.06,16),toon(0xf2d3a2),[0,-.03,0]);
+    part(g,new THREE.SphereGeometry(.1,16,12),toon(0x7a4a32),[0,0,0],[1,.9,1]);
+    part(g,new THREE.SphereGeometry(.045,10,8),toon(0xf2d3a2),[0,.075,.045]);
     g.position.set(.42,.46,.42); h.add(g); return [.44,.36,.36]; },
-  sausage(h){ const g=new THREE.Group();   // corn-dog style: a stick with the sausage on top, held upright
+  sausage(h){ const g=new THREE.Group();   // a stick of three sweet dumplings, held upright
     part(g,new THREE.CylinderGeometry(.014,.014,.5,8),toon(0xd9b784),[0,0,0],[1,1,1],.01);
-    part(g,new THREE.CylinderGeometry(.06,.06,.24,14),toon(0xa8432e),[0,.1,0]);
-    part(g,new THREE.SphereGeometry(.06,12,8),toon(0xa8432e),[0,.22,0]);
-    part(g,new THREE.SphereGeometry(.06,12,8),toon(0xa8432e),[0,-.02,0]);
+    part(g,new THREE.SphereGeometry(.062,14,10),toon(0xf6a5b8),[0,.2,0]);
+    part(g,new THREE.SphereGeometry(.062,14,10),toon(0xfdf3e7),[0,.08,0]);
+    part(g,new THREE.SphereGeometry(.062,14,10),toon(0x9fd18a),[0,-.04,0]);
     g.position.set(.44,.2,.38); h.add(g); return [.47,.3,.34]; },
 };
 // the five versions, from the reference pictures
@@ -316,9 +342,10 @@ function makeBun(scale=1, variant=0){
   const head = new THREE.Object3D(); head.position.y = .6; body.add(head);
   const b = new THREE.Mesh(KURI.bodyGeo, KURI.faceMat(V.face)); b.scale.z = .9; head.add(b);
   const hull = new THREE.Mesh(KURI.hullGeo, KURI.line); hull.scale.z = .9; head.add(hull);
+  [-1,1].forEach(sd => { nub(head, .1*sd, 1.27, .02, .13, .05, .07, KURI.leafMat).rotation.z = -.55*sd; });
   const feet = [];
   [-1,1].forEach(sd=>{
-    const e = KURI.earPos(sd); nub(head, e.x, e.y, -.02, .1, .085, .08);
+    const e = KURI.earPos(sd); nub(head, e.x, e.y, e.z, .15, .13, .08, KURI.capMat).rotation.z = -.55*sd;
     if (!(V.prop && sd === 1)) nub(body, .55*sd, .48, .08, .1, .15, .1).rotation.z = .4*sd;
     feet.push(nub(body, .24*sd, .04, .22, .16, .085, .18));
   });
@@ -343,7 +370,7 @@ function pick(bun){
     if (Math.random() < .5) ang = Math.atan2(camera.position.x-p.x, camera.position.z-p.z) + (Math.random()-.5)*1.4;
     const r = 2 + Math.random()*3.5;
     bun.target.set(p.x + Math.sin(ang)*r, 0, p.z + Math.cos(ang)*r);
-    if (bun.target.length() < 8 && bun.target.distanceTo(pond) > 3.4) return;
+    if (bun.target.length() < 8 && bun.target.distanceTo(pond) > 3.4 && HOUSES.every(([hx,hz,hs]) => Math.hypot(bun.target.x-hx, bun.target.z-hz) > 2.6*hs)) return;
   }
   bun.target.set((Math.random()-.5)*6, 0, (Math.random()-.5)*6);
 }
@@ -383,7 +410,7 @@ function step(bun, dt, t){
 // ---- time of day ----
 const TIMES = [
   {hill:0xd9c58a, top:0xbcd8ee, sky:0xf6e6c6, ground:0x9cb36a, hemi:[0xfff6e0,0x8a6a44,.65], sun:[0xfff2d8,.95], lamp:0, fly:0, page:'#f3e3c8'},
-  {hill:0xc89a78, top:0x9a86bb, sky:0xf2a77c, ground:0x9a9a58, hemi:[0xffc9a0,0x6a3a3a,.55], sun:[0xff9a62,.85], lamp:.6, fly:.2, page:'#efb08a'},
+  {hill:0xdcae94, top:0xb4a0cc, sky:0xf6bc9a, ground:0xaab36c, hemi:[0xffd9bc,0x7c5a54,.72], sun:[0xffb584,.8], lamp:.6, fly:.2, page:'#efb08a'},
   {hill:0x2c3a58, top:0x0d1030, sky:0x1e2448, ground:0x3e5440, hemi:[0x7f8ad8,0x1a1a2c,.4], sun:[0x9fb0ff,.25], lamp:2.2, fly:1, page:'#1e2448'},
 ];
 let flyLevel = 0, flyTarget = 0;
@@ -398,7 +425,7 @@ function setTime(i){
 }
 document.querySelectorAll('.seg button[data-t]').forEach(b=>b.addEventListener('click',()=>setTime(+b.dataset.t)));
 
-// ---- everyone who has this page open gets their own Kurimanju ----
+// ---- everyone who has this page open gets their own The mascot ----
 const people = new Map();   // peer label -> bun
 const youMark = new THREE.Mesh(new THREE.ConeGeometry(.12,.22,4), new THREE.MeshBasicMaterial({color:0xf27a9a}));
 youMark.rotation.x = Math.PI; youMark.position.y = 2.15; youMark.visible = false; buns[0].g.add(youMark);
@@ -433,7 +460,7 @@ async function supabaseRoom(){
   }
   const client = window.supabase.createClient(KURI_ONLINE.url, KURI_ONLINE.anonKey);
   const myKey = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
-  const ch = client.channel('kurimanju-forest', {config:{presence:{key:myKey}}});
+  const ch = client.channel('bamtori-forest', {config:{presence:{key:myKey}}});
   let listener = null;
   const publish = () => {
     if (!listener) return;
@@ -486,6 +513,9 @@ function frame(){
     pa.x -= nx*push; pa.z -= nz*push; pb.x += nx*push; pb.z += nz*push;
     hit.add(A); hit.add(B);
   }
+  buns.forEach(b=>{ const p = b.g.position; HOUSES.forEach(([hx,hz,hs])=>{
+    const dx = p.x-hx, dz = p.z-hz, d = Math.hypot(dx,dz), min = 1.75*hs + .5*b.g.scale.x;
+    if (d < min && d > .001){ p.x = hx + dx/d*min; p.z = hz + dz/d*min; hit.add(b); } }); });
   // someone stuck against another one picks a new place to go
   buns.forEach(b=>{ b.blockT = hit.has(b) ? (b.blockT||0) + dt : 0; if (b.blockT > 1.2){ b.blockT = 0; b.wait = 0; pick(b); } });
   idle += dt; if (!dragging){ yawV *= .92; yaw += yawV; if (idle > 4 && !reduce) yaw += dt*.03; }
@@ -503,15 +533,15 @@ function frame(){
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
-resize(); setTime(0); frame();
+resize(); setTime(1); frame();
 
 // ---- background music: browsers block autoplay, so it starts on the first tap or key press ----
 // The track is audio/bgm.mp3. If that file is not there, the music button stays hidden.
 (() => {
   const wrap = document.getElementById('musicWrap'), btn = document.getElementById('music');
   const audio = new Audio('audio/bgm.mp3'); audio.loop = true; audio.volume = .45; audio.preload = 'auto';
-  let want = true; try { want = localStorage.getItem('kurimanju-music') !== 'off'; } catch (e) {}
-  const remember = () => { try { want ? localStorage.removeItem('kurimanju-music') : localStorage.setItem('kurimanju-music', 'off'); } catch (e) {} };
+  let want = true; try { want = localStorage.getItem('bamtori-music') !== 'off'; } catch (e) {}
+  const remember = () => { try { want ? localStorage.removeItem('bamtori-music') : localStorage.setItem('bamtori-music', 'off'); } catch (e) {} };
   const show = () => { const on = !audio.paused; btn.setAttribute('aria-pressed', String(on)); btn.setAttribute('aria-label', on ? '음악 끄기' : '음악 켜기'); };
   audio.addEventListener('canplaythrough', () => { wrap.hidden = false; show(); }, {once:true});
   audio.addEventListener('error', () => { wrap.hidden = true; });
